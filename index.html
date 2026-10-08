@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>SBK Service Audit — ฟอร์มตรวจประเมิน v8</title>
+<meta name="theme-color" content="#ea580c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="SBK ฟอร์มตรวจ">
+<link rel="icon" id="ico" href="data:,">
+<link rel="apple-touch-icon" id="ati" href="">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f1f5f9;--card:#fff;--tx:#0f172a;--mu:#64748b;--bd:#e2e8f0;--pr:#ea580c;--ok:#10b981;--no:#ef4444}
+[data-t=dark]{--bg:#0b1020;--card:#151b30;--tx:#e8edf8;--mu:#93a0bd;--bd:#26304d}
+*{box-sizing:border-box;margin:0}
+body{font-family:'Prompt',sans-serif;line-height:1.7;background:var(--bg) radial-gradient(circle at 0 0,rgba(251,146,60,.2),transparent 45%) fixed;background-image:radial-gradient(circle at 0 0,rgba(251,146,60,.2),transparent 45%),radial-gradient(circle at 100% 25%,rgba(244,114,182,.16),transparent 40%);background-attachment:fixed;color:var(--tx);padding-bottom:110px;min-height:100vh}
+/* ===== Splash ===== */
+#sp{position:fixed;inset:0;z-index:99;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;text-align:center;overflow:hidden;cursor:pointer;
+background:linear-gradient(135deg,#7c2d12,#ea580c,#db2777,#f59e0b);background-size:400% 400%;animation:bg 8s ease infinite;transition:opacity .7s,transform .7s}
+#sp.out{opacity:0;transform:scale(1.08);pointer-events:none}
+@keyframes bg{50%{background-position:100% 50%}}
+.orb{position:absolute;border-radius:50%;filter:blur(40px);opacity:.5;animation:fl 9s ease-in-out infinite}
+@keyframes fl{50%{transform:translate(40px,-60px) scale(1.2)}}
+.lg{position:relative;width:132px;height:132px;display:grid;place-items:center}
+.lg svg{width:108px;height:108px;filter:drop-shadow(0 12px 30px rgba(0,0,0,.45));animation:pop 1s cubic-bezier(.2,1.4,.4,1) both,pulse 2.4s 1s ease-in-out infinite}
+.lg:before{content:"";position:absolute;inset:0;border-radius:50%;border:3px solid transparent;border-top-color:#fde68a;border-bottom-color:#67e8f9;animation:spin 2.2s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pop{from{transform:scale(0) rotate(-120deg);opacity:0}}
+@keyframes pulse{50%{transform:scale(1.07)}}
+#sp h1{font-size:1.7rem;font-weight:700;margin-top:18px;letter-spacing:.5px;animation:up .8s .4s both}
+#sp .sub{opacity:.85;font-size:.95rem;animation:up .8s .6s both}
+#sp .clk{margin-top:22px;padding:12px 26px;border-radius:18px;background:rgba(255,255,255,.14);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.3);animation:up .8s .8s both}
+#sp .clk b{display:block;font-size:2rem;letter-spacing:3px;font-variant-numeric:tabular-nums}
+@keyframes up{from{transform:translateY(24px);opacity:0}}
+.bar{position:absolute;bottom:56px;width:min(260px,60vw);height:5px;border-radius:9px;background:rgba(255,255,255,.25);overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#fde68a,#67e8f9);animation:ld 3s linear forwards}
+@keyframes ld{to{width:100%}}
+.tap{position:absolute;bottom:26px;font-size:.8rem;opacity:.7}
+/* ===== App ===== */
+header{background:linear-gradient(120deg,#f97316,#ef4444 52%,#ec4899);color:#fff;padding:14px 16px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:20;box-shadow:0 4px 18px rgba(234,88,12,.38)}
+header .l{width:42px;height:42px;flex:none}header .l svg{width:100%;height:100%}
+header h2{font-size:1.05rem;line-height:1.3}header small{opacity:.85;font-size:.75rem;display:block}
+header .sp{flex:1}
+.ib{background:rgba(255,255,255,.18);border:0;color:#fff;border-radius:12px;padding:8px 12px;font:inherit;font-size:.85rem;cursor:pointer;text-decoration:none}
+main{max-width:760px;margin:0 auto;padding:16px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:20px;padding:18px;margin-bottom:16px;box-shadow:0 4px 18px rgba(0,0,0,.05)}
+.card h3{font-size:1rem;margin-bottom:12px;padding-bottom:8px;border-bottom:3px solid;border-image:linear-gradient(90deg,#f97316,#ec4899,transparent) 1}
+.g{display:grid;gap:12px;grid-template-columns:1fr 1fr}@media(max-width:520px){.g{grid-template-columns:1fr}}
+label{font-size:.82rem;color:var(--mu);display:block;margin-bottom:3px}
+input,select,textarea{width:100%;font:inherit;padding:10px 12px;border-radius:12px;border:1.5px solid var(--bd);background:var(--bg);color:var(--tx)}
+input:focus,select:focus,textarea:focus{outline:0;border-color:var(--pr)}
+.dm{border-top:1px dashed var(--bd);padding:14px 0}.dm:first-of-type{border-top:0;padding-top:0}.nb{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:8px;color:#fff;font-size:.8rem;font-style:normal;margin-right:7px;vertical-align:1px}
+.dm b{font-size:.95rem}.dm span{display:block;font-size:.78rem;color:var(--mu)}.dm em{font-style:normal;font-size:.72rem;color:var(--pr)}
+.sc{display:grid;grid-template-columns:repeat(5,1fr);gap:7px;margin-top:8px}
+.sc button{padding:11px 0;border-radius:12px;border:1.5px solid var(--bd);background:var(--bg);color:var(--tx);font:inherit;font-weight:600;font-size:1rem;cursor:pointer;transition:.15s}
+.sc button.on{color:#fff;border-color:transparent;transform:scale(1.07);box-shadow:0 6px 14px rgba(0,0,0,.25)}
+.lgd{display:flex;justify-content:space-between;font-size:.68rem;color:var(--mu);margin-top:3px}
+.ph{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}.ph div{position:relative;width:88px;height:88px;border-radius:14px;overflow:hidden;border:1px solid var(--bd)}.ph img{width:100%;height:100%;object-fit:cover}.ph button{position:absolute;top:3px;right:3px;width:24px;height:24px;border-radius:50%;border:0;background:#000a;color:#fff;cursor:pointer;line-height:1}
+.pb{border:1.5px dashed var(--pr);background:transparent;color:var(--pr);border-radius:14px;padding:11px;font:inherit;font-weight:500;cursor:pointer}.pb:disabled{opacity:.45}
+.bb{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--bd);padding:10px 16px calc(10px + env(safe-area-inset-bottom));display:flex;gap:12px;align-items:center;justify-content:center;z-index:15}
+.bb .pc{font-size:1.5rem;font-weight:700;min-width:96px;text-align:center;line-height:1.2}.bb .pc small{display:block;font-size:.7rem;font-weight:400;color:var(--mu)}
+.btn{flex:1;max-width:340px;border:0;border-radius:16px;padding:13px;font:inherit;font-weight:600;font-size:1rem;color:#fff;background:linear-gradient(120deg,#f97316,#ef4444);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn:disabled{opacity:.6}
+.spn{width:18px;height:18px;border:3px solid #fff5;border-top-color:#fff;border-radius:50%;animation:spin 1s linear infinite}
+#toast{position:fixed;top:78px;left:50%;transform:translate(-50%,-20px);opacity:0;padding:12px 20px;border-radius:14px;color:#fff;z-index:50;transition:.3s;max-width:90vw;font-size:.9rem;pointer-events:none}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+@keyframes fu{from{opacity:0;transform:translateY(18px)}}
+@keyframes pk{50%{transform:scale(1.22)}}
+@keyframes pp{from{opacity:0;transform:scale(.8)}}
+@keyframes dr{to{transform:translate(-3%,3%) scale(1.1)}}
+@keyframes dk{to{stroke-dashoffset:0}}
+@keyframes cf{to{transform:translate(var(--x),var(--y)) rotate(540deg);opacity:0}}
+@keyframes shn{60%,100%{left:130%}}
+body:before{content:"";position:fixed;inset:-10%;z-index:-1;pointer-events:none;background:radial-gradient(circle at 10% 8%,rgba(249,115,22,.22),transparent 38%),radial-gradient(circle at 90% 30%,rgba(236,72,153,.16),transparent 38%),radial-gradient(circle at 50% 100%,rgba(250,204,21,.18),transparent 42%);animation:dr 15s ease-in-out infinite alternate}
+header{background-size:220% 220%;animation:bg 12s ease infinite}
+main .card{animation:fu .6s both}main .card:nth-child(2){animation-delay:.1s}main .card:nth-child(3){animation-delay:.2s}main .card:nth-child(4){animation-delay:.3s}
+.sc button:active{transform:scale(.9)}.sc button.on{animation:pk .3s}
+.btn{position:relative;overflow:hidden;transition:transform .2s}.btn:active{transform:scale(.97)}
+.btn:after{content:"";position:absolute;top:0;left:-60%;width:40%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.5),transparent);transform:skewX(-20deg);animation:shn 3.2s infinite}
+.okv{position:fixed;inset:0;display:none;place-items:center;background:rgba(15,23,42,.55);z-index:80;backdrop-filter:blur(4px)}.okv.on{display:grid}
+.okc{position:relative;text-align:center;color:#fff;padding:28px 38px;border-radius:26px;background:linear-gradient(135deg,#f97316,#ec4899);box-shadow:0 20px 50px rgba(0,0,0,.4);animation:pp .45s cubic-bezier(.2,1.4,.4,1)}
+.okc svg{width:78px;height:78px}.okc circle,.okc path{stroke-dasharray:160;stroke-dashoffset:160;animation:dk .7s .15s ease forwards}
+.okc i{position:absolute;left:50%;top:38%;width:9px;height:14px;border-radius:2px;animation:cf 1.3s ease-out forwards}
+@media(prefers-reduced-motion:reduce){*,:before,:after{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<!-- ===== Splash: โลโก้ + วัน/เดือน/ปี : เวลา แล้วเข้าแอปอัตโนมัติ ===== -->
+<div id="sp" onclick="enter()">
+  <div class="orb" style="width:240px;height:240px;background:#f472b6;top:-60px;left:-60px"></div>
+  <div class="orb" style="width:280px;height:280px;background:#fb7185;bottom:-80px;right:-70px;animation-delay:-3s"></div>
+  <div class="orb" style="width:180px;height:180px;background:#fbbf24;top:55%;left:62%;animation-delay:-6s"></div>
+  <div class="lg" id="spLogo"></div>
+  <h1>SBK Service Audit</h1>
+  <div class="sub">ฟอร์มตรวจประเมินสมรรถนะการบริการ บุคลิกภาพ และการสื่อสาร</div>
+  <div class="clk"><span id="spD">-</span><b id="spT">--:--:--</b></div>
+  <div class="bar"><i></i></div><div class="tap">แตะที่หน้าจอเพื่อเข้าสู่ระบบทันที</div>
+</div>
+
+<header>
+  <div class="l" id="hLogo"></div>
+  <div><h2>ฟอร์มตรวจประเมิน</h2><small id="hClk"></small></div>
+  <div class="sp"></div>
+  <button class="ib" onclick="theme()" aria-label="สลับโหมด">🌓</button>
+</header>
+
+<main>
+  <div class="card"><h3>📋 ข้อมูลการตรวจ</h3>
+    <div class="g">
+      <div><label>วันที่ตรวจ</label><input type="date" id="date"></div>
+      <div><label>กะปฏิบัติงาน</label><select id="shift"><option>เช้า</option><option>บ่าย</option><option>ดึก</option></select></div>
+      <div style="grid-column:1/-1"><label>พนักงานที่ถูกตรวจ</label><select id="emp"></select>
+        <div id="empC" style="display:none;margin-top:8px" class="g"><input id="empN" placeholder="ชื่อ-สกุล (บังคับ)"><input id="empI" placeholder="รหัสพนักงาน (ถ้ามี)"><input id="empR" placeholder="ตำแหน่ง (ถ้าไม่ระบุ = เจ้าหน้าที่ รปภ.)" style="grid-column:1/-1"></div></div>
+      <div><label>ชั้นที่ตรวจ</label><select id="floor"></select></div>
+      <div><label>จุดที่ตรวจ / โพเดียม</label><input id="loc" placeholder="เช่น ป้อม A, ประตู 3"></div>
+      <div><label>ผู้ตรวจประเมิน</label><select id="insp"></select><input id="inspC" placeholder="พิมพ์ชื่อผู้ตรวจ" style="display:none;margin-top:8px"></div>
+    </div>
+  </div>
+  <div class="card"><h3>⭐ ให้คะแนน 6 หัวข้อ</h3><div id="doms"></div></div>
+  <div class="card"><h3>📷 ภาพประกอบการตรวจ <small style="font-weight:400;color:var(--mu)" id="phN">(0/3)</small></h3>
+    <div class="ph" id="ph"></div>
+    <div class="g"><button type="button" class="pb" id="bCam" onclick="$('cam').click()">📸 ถ่ายภาพ</button><button type="button" class="pb" id="bGal" onclick="$('gal').click()">🖼 เลือกจากอัลบั้ม</button></div>
+    <input type="file" id="cam" accept="image/*" capture="environment" hidden><input type="file" id="gal" accept="image/*" multiple hidden>
+    <div style="font-size:.74rem;color:var(--mu);margin-top:8px">แนบได้สูงสุด 3 รูป ระบบย่อรูปให้อัตโนมัติก่อนบันทึกลง Google Drive</div></div>
+  <div class="card"><h3>💬 ข้อเสนอแนะ</h3><textarea id="fb" rows="3" placeholder="จุดเด่น / สิ่งที่ควรปรับปรุง (ถ้ามี)"></textarea></div>
+</main>
+
+<div class="bb"><div id="pbar" style="position:absolute;top:0;left:0;height:3px;width:0;background:linear-gradient(90deg,#f97316,#ec4899,#facc15);transition:width .5s;border-radius:0 3px 3px 0"></div>
+  <div class="pc"><span id="pct">0%</span><small id="res">ยังไม่ครบ</small></div>
+  <button class="btn" id="go" onclick="submitForm()">บันทึกผลการตรวจ</button>
+</div>
+<div class="okv" id="okv" onclick="this.classList.remove('on')"><div class="okc"><svg viewBox="0 0 52 52"><circle cx="26" cy="26" r="24" fill="none" stroke="#fff" stroke-width="3"/><path d="m14 27 8 8 16-17" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg><b id="okT" style="display:block;margin-top:8px"></b></div></div>
+<div id="toast"></div>
+
+<script>
+/* ===== ตั้งค่า ===== */
+const API_URL = 'https://script.google.com/macros/s/AKfycbyhYoaB58BSjU57biQeieEFsCfHnGb5t285rdRWRC5Sl1a1hYa6wY9E1JZECe9tSOQC/exec';
+const SHEET_ID = '1Yu3s5HCewE5Xf29jatnJVLbvZx0zWVWXZ601RveI9DY'; // ใช้อ้างอิง (ฝั่ง Code.gs เป็นตัวเปิดชีตจริง)
+const FLOORS = ['ชั้น.B1', 'ชั้น.1', 'ชั้น.2', 'ชั้น.3', 'ชั้น.4', 'ชั้น.5'];
+const PASS_PCT = 70, MIN_DOMAIN = 3; // ผ่านเมื่อ ≥70% และไม่มีหัวข้อใดต่ำกว่า 3
+const INSPECTORS = [["21167","นาย สิทธิเดช สืบศรี (ตรวจการอาวุโส)"],["21394","นาย กฤษฎา ศรีมุม (ตรวจการ)"],["21649","นาย สุนทร อินเดช (ตรวจการ)"],["21336","นาย ทัศนัย พาหา (ตรวจการ)"],["22011","นาย จักรินทร์ สินพันธ์ (หน.ทีม)"],["21352","นาย นพฤทธิ์ กียะสูตร (ตรวจการ)"],["21755","นาย นิพัต มุสันเที๊ยะ (ตรวจการ)"]]; // ผู้ตรวจประเมิน (ตรวจการ/หัวหน้าทีม)
+const ROSTER = [["21968","นาย วัชระ วิลานันท์"],["22140","นาย สุธรรม ทองปรวน"],["22149","นาย สุธีร์ ทองเปลี่ยว"],["22117","นาย สุวัฒน์ สงพิมพ์"],["22003","นาย อรัญ สุวรรณธาดา"],["22143","นาย ไพรัตน์ เพียงตน"],["21913","นาย สุธิราช พรหมพิทักษ์"],["22024","นาย บีช จันทร์ตรี"],["21574","นาย ดำรงศักดิ์ กลั่นจิตต์"],["21803","น.ส.อรณิชชา ปานกำเหนิด"],["22074","นาย ปัญญาณวัฒน์ อินเดช"],["22141","นาย มาโนช ทุยเวียง"],["22010","นาย พลภัทร วัฒนอเนก"],["22018","นาย พีรวัฒน์ ฉลูศรี"],["22158","นาย มงคล วงศ์สวัสดิ์"],["21312","นาย นฤพล ธนินท์ณัฐกุล"],["21472","นาย สวัสดิ์ อ่อนน้อมดี"],["22001","นาย ธนบูรณ์ อวดปาก"],["22154","นาย บริพัตร เพชรดี"]]; // พนักงานที่ถูกตรวจ
+const DOMS = [
+ ['บุคลิกภาพและการแต่งกาย','Grooming & Personality','เครื่องแต่งกาย ความสะอาด ความเป็นระเบียบ ภาพลักษณ์โดยรวม'],
+ ['คำพูดและการใช้ภาษา','Verbal Communication & Tone','สุภาพ ชัดเจน เลือกใช้คำและน้ำเสียงเหมาะสม'],
+ ['ท่าทางและภาษากาย','Body Language & Posture','กิริยามารยาท ยิ้มแย้ม พร้อมให้บริการ'],
+ ['การยืนโพเดียมและการปรากฏตัว','Podium Presence','ความสง่างาม การสบตา ความมั่นใจขณะปฏิบัติหน้าที่'],
+ ['การบริการและการช่วยเหลือลูกค้า','Customer Service & Support','กระตือรือร้น Service Mind แก้ปัญหาเฉพาะหน้า'],
+ ['การสื่อสารและการประสานงาน','Communication & Coordination','ข้อมูลถูกต้อง ส่งต่อมีประสิทธิภาพ ทำงานร่วมกับผู้อื่น']];
+const DC = ['#f97316', '#ec4899', '#8b5cf6', '#0ea5e9', '#14b8a6', '#eab308']; // สีประจำหัวข้อ
+const COL = ['', '#ef4444', '#f97316', '#eab308', '#22c55e', '#ea580c'];
+const LOGO = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fbbf24"/><stop offset=".5" stop-color="#f97316"/><stop offset="1" stop-color="#e11d48"/></linearGradient></defs><rect width="100" height="100" rx="24" fill="url(#g)"/><rect x="24" y="22" width="46" height="62" rx="8" fill="#fff"/><rect x="36" y="15" width="22" height="13" rx="5" fill="#9a3412"/><path d="m31 45 4 4 7-8M31 62l4 4 7-8" fill="none" stroke="#ea580c" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M49 45h15M49 62h15" stroke="#cbd5e1" stroke-width="4.5" stroke-linecap="round"/><circle cx="76" cy="24" r="10" fill="#facc15" stroke="#fff" stroke-width="2.5"/><path d="m76 18.5 1.9 3.9 4.3.6-3.1 3 .7 4.2L76 28l-3.8 2.2.7-4.2-3.1-3 4.3-.6z" fill="#ea580c"/></svg>';
+const S = {}; // คะแนนที่เลือก {1..6}
+const PH = [], MAXPH = 3; // รูปที่แนบ (data URL JPEG ที่ย่อแล้ว)
+const $ = id => document.getElementById(id);
+
+/* ===== วันที่/เวลา (พ.ศ. คำนวณจาก Date จริง) ===== */
+function clock() {
+  const n = new Date();
+  const d = n.toLocaleDateString('th-TH', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  const t = n.toLocaleTimeString('th-TH', { hour12: false });
+  if ($('spD')) { $('spD').textContent = d; $('spT').textContent = t; } // splash ถูกลบหลังเข้าแอป
+  $('hClk').textContent = n.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' }) + ' : ' + t.slice(0, 5) + ' น.';
+}
+let entered = false;
+function enter() { if (entered) return; entered = true; $('sp').classList.add('out'); setTimeout(() => $('sp').remove(), 800); }
+
+/* ===== ไอคอนแอป (Home Screen มือถือ/คอม) สร้างจากโลโก้เดียวกัน ===== */
+function makeIcons() {
+  const img = new Image();
+  img.onload = () => {
+    const mk = z => { const c = document.createElement('canvas'); c.width = c.height = z; c.getContext('2d').drawImage(img, 0, 0, z, z); return c.toDataURL('image/png'); };
+    const i180 = mk(180), i192 = mk(192), i512 = mk(512);
+    $('ico').href = i192; $('ati').href = i180;
+    const m = { name: 'SBK Service Audit — ฟอร์มตรวจ', short_name: 'SBK ฟอร์มตรวจ', display: 'standalone', background_color: '#ea580c', theme_color: '#ea580c', start_url: location.href.split('#')[0],
+      icons: [{ src: i192, sizes: '192x192', type: 'image/png', purpose: 'any maskable' }, { src: i512, sizes: '512x512', type: 'image/png', purpose: 'any maskable' }] };
+    const l = document.createElement('link'); l.rel = 'manifest';
+    l.href = URL.createObjectURL(new Blob([JSON.stringify(m)], { type: 'application/manifest+json' }));
+    document.head.appendChild(l);
+  };
+  img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(LOGO);
+}
+
+/* ===== สร้างฟอร์ม ===== */
+function init() {
+  $('spLogo').innerHTML = LOGO; $('hLogo').innerHTML = LOGO;
+  const d = new Date(); $('date').value = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  $('floor').innerHTML = '<option value="">— เลือกชั้น —</option>' + FLOORS.map(x => `<option>${x}</option>`).join('');
+  $('floor').value = localStorage.getItem('sbk_floor') || '';
+  const CU = '<option value="custom">✏️ เพิ่มเอง (พิมพ์ชื่อใหม่)</option>';
+  $('emp').innerHTML = '<option value="">— เลือกพนักงาน —</option>' + ROSTER.map((r, i) => `<option value="${i}">${r[0]} · ${r[1]}</option>`).join('') + CU;
+  $('insp').innerHTML = '<option value="">— เลือกผู้ตรวจ —</option>' + INSPECTORS.map((r, i) => `<option value="${i}">${r[0]} · ${r[1]}</option>`).join('') + CU;
+  $('emp').addEventListener('change', () => { $('empC').style.display = $('emp').value === 'custom' ? 'grid' : 'none'; });
+  $('insp').addEventListener('change', () => { $('inspC').style.display = $('insp').value === 'custom' ? 'block' : 'none'; });
+  // จำผู้ตรวจครั้งล่าสุด (เลือกจากรายการ หรือพิมพ์เอง)
+  try { const s = JSON.parse(localStorage.getItem('sbk_insp3') || 'null');
+    if (s) { $('insp').value = s.v; if (s.v === 'custom') { $('inspC').value = s.n || ''; $('inspC').style.display = 'block'; } } } catch (e) {}
+  $('doms').innerHTML = DOMS.map((m, i) => `<div class="dm" style="border-left:4px solid ${DC[i]};padding-left:12px"><i class="nb" style="background:${DC[i]}">${i + 1}</i><b>${m[0]}</b> <em>${m[1]}</em><span>${m[2]}</span>
+    <div class="sc">${[1, 2, 3, 4, 5].map(v => `<button type="button" data-d="${i + 1}" data-v="${v}">${v}</button>`).join('')}</div>
+    <div class="lgd"><span>ปรับปรุงด่วน</span><span>ดีเยี่ยม</span></div></div>`).join('');
+  $('doms').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    S[b.dataset.d] = +b.dataset.v; paint();
+  });
+  ['cam', 'gal'].forEach(id => $(id).addEventListener('change', e => { addPhotos([...e.target.files]); e.target.value = ''; }));
+  clock(); setInterval(clock, 1000); makeIcons();
+  setTimeout(enter, 3000); // เข้าแอปอัตโนมัติหลังโชว์โลโก้ 3 วินาที (ปรับ 2000-4000 ได้)
+  flushQueue(); addEventListener('online', flushQueue);
+}
+/* ===== รูปภาพ: ย่อเหลือด้านยาว ≤800px คุณภาพ 0.7 เพื่อไม่ให้เกินขนาดที่ Apps Script รับได้ ===== */
+function compress(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader(); r.onerror = rej;
+    r.onload = () => { const i = new Image(); i.onerror = rej;
+      i.onload = () => { const k = Math.min(1, 800 / Math.max(i.width, i.height)), c = document.createElement('canvas');
+        c.width = Math.round(i.width * k); c.height = Math.round(i.height * k);
+        c.getContext('2d').drawImage(i, 0, 0, c.width, c.height); res(c.toDataURL('image/jpeg', .7)); };
+      i.src = r.result; };
+    r.readAsDataURL(file);
+  });
+}
+async function addPhotos(files) {
+  for (const f of files) {
+    if (PH.length >= MAXPH) { toast('แนบรูปได้สูงสุด ' + MAXPH + ' รูป', false); break; }
+    try { PH.push(await compress(f)); } catch (e) { toast('อ่านรูปไม่สำเร็จ กรุณาลองใหม่', false); }
+  }
+  drawPh();
+}
+function drawPh() {
+  $('ph').innerHTML = PH.map((u, i) => `<div><img src="${u}" alt="รูปที่ ${i + 1}"><button type="button" onclick="PH.splice(${i},1);drawPh()" aria-label="ลบรูป">×</button></div>`).join('');
+  $('phN').textContent = '(' + PH.length + '/' + MAXPH + ')'; $('bCam').disabled = $('bGal').disabled = PH.length >= MAXPH;
+}
+const cleanName = s => s.replace(/\s*\(.*?\)\s*/, '').trim();
+function calc() {
+  const v = [1, 2, 3, 4, 5, 6].map(i => S[i] || 0);
+  if (v.some(x => !x)) return null;
+  const pct = Math.round(v.reduce((a, b) => a + b, 0) / 30 * 1000) / 10;
+  return { v, pct, pass: pct >= PASS_PCT && Math.min(...v) >= MIN_DOMAIN };
+}
+function paint() {
+  document.querySelectorAll('.sc button').forEach(b => {
+    const on = S[b.dataset.d] === +b.dataset.v;
+    b.classList.toggle('on', on); b.style.background = on ? COL[+b.dataset.v] : '';
+  });
+  const r = calc(), got = Object.keys(S).length;
+  $('pct').textContent = r ? r.pct + '%' : got + '/6';
+  $('res').textContent = r ? (r.pass ? '✅ ผ่าน' : '⚠️ ต้องอบรมเพิ่ม') : 'ให้คะแนนแล้ว';
+  $('pbar').style.width = got / 6 * 100 + '%';
+  $('pct').style.color = r ? (r.pass ? '#16a34a' : '#ef4444') : '';
+}
+function celebrate(msg) { // แอนิเมชันบันทึกสำเร็จ: วงกลมติ๊กถูก + confetti
+  $('okT').textContent = msg; const v = $('okv'), box = v.firstElementChild; box.querySelectorAll('i').forEach(e => e.remove());
+  const cs = ['#fde047', '#fff', '#fb7185', '#38bdf8', '#34d399', '#fb923c'];
+  for (let i = 0; i < 26; i++) { const e = document.createElement('i'), a = Math.random() * 6.28, r = 90 + Math.random() * 140;
+    e.style.cssText = `background:${cs[i % 6]};--x:${Math.cos(a) * r}px;--y:${Math.sin(a) * r}px;animation-delay:${Math.random() * .15}s`; box.appendChild(e); }
+  v.classList.add('on'); setTimeout(() => v.classList.remove('on'), 1900);
+}
+function theme() { const t = document.documentElement.dataset.t === 'dark' ? '' : 'dark'; document.documentElement.dataset.t = t; localStorage.setItem('sbk_theme', t); }
+function toast(msg, ok) { const t = $('toast'); t.textContent = msg; t.style.background = ok ? '#16a34a' : '#dc2626'; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 3200); }
+
+/* ===== บันทึก: ส่ง no-cors แล้วถือว่าสำเร็จเมื่อไม่ throw / เก็บคิวไว้ส่งใหม่เมื่อออฟไลน์ ===== */
+async function post(p) { await fetch(API_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(p) }); }
+async function flushQueue() {
+  if (!API_URL) return;
+  let q = JSON.parse(localStorage.getItem('sbk_q') || '[]'); if (!q.length) return;
+  const left = []; for (const p of q) { try { await post(p); } catch (e) { left.push(p); } }
+  localStorage.setItem('sbk_q', JSON.stringify(left));
+  if (left.length < q.length) toast('ส่งข้อมูลที่ค้างไว้สำเร็จ ' + (q.length - left.length) + ' รายการ', true);
+}
+async function submitForm() {
+  const ei = $('emp').value, ii = $('insp').value, r = calc();
+  if (ei === '') return toast('กรุณาเลือกพนักงานที่ถูกตรวจ', false);
+  if (ei === 'custom' && !$('empN').value.trim()) return toast('กรุณาพิมพ์ชื่อ-สกุลพนักงานที่ถูกตรวจ', false);
+  if (ii === '') return toast('กรุณาเลือกผู้ตรวจประเมิน', false);
+  if (ii === 'custom' && !$('inspC').value.trim()) return toast('กรุณาพิมพ์ชื่อผู้ตรวจประเมิน', false);
+  if (!r) return toast('กรุณาให้คะแนนให้ครบทั้ง 6 หัวข้อ', false);
+  if (!API_URL) return toast('ยังไม่ได้ตั้งค่า API_URL ในไฟล์ (ดูขั้นตอน Deploy)', false);
+  let id, name, role;
+  if (ei === 'custom') { id = $('empI').value.trim(); name = $('empN').value.trim(); role = $('empR').value.trim() || 'เจ้าหน้าที่ รปภ.'; }
+  else { const full = ROSTER[+ei][1], m = full.match(/\((.*?)\)/); id = ROSTER[+ei][0]; name = cleanName(full); role = m ? m[1] : 'เจ้าหน้าที่ รปภ.'; }
+  const inspector = ii === 'custom' ? $('inspC').value.trim() : cleanName(INSPECTORS[+ii][1]);
+  const p = { date: $('date').value, id, name, role, shift: $('shift').value,
+    loc: $('loc').value.trim(), floor: $('floor').value, inspector, fb: $('fb').value.trim(), photos: PH.slice() };
+  r.v.forEach((x, i) => p['s' + (i + 1)] = x);
+  localStorage.setItem('sbk_floor', p.floor);
+  localStorage.setItem('sbk_insp3', JSON.stringify({ v: ii, n: ii === 'custom' ? p.inspector : '' }));
+  const b = $('go'); b.disabled = true; b.innerHTML = '<span class="spn"></span> กำลังบันทึก...';
+  try { await post(p); celebrate('บันทึกสำเร็จ — ' + p.name); }
+  catch (e) { try { const q = JSON.parse(localStorage.getItem('sbk_q') || '[]'); q.push(p); localStorage.setItem('sbk_q', JSON.stringify(q)); toast('ไม่มีอินเทอร์เน็ต เก็บไว้ในเครื่องแล้ว จะส่งให้อัตโนมัติเมื่อออนไลน์', false); } catch (x) { toast('ไม่มีอินเทอร์เน็ตและพื้นที่เก็บในเครื่องเต็ม กรุณาลบรูปแล้วลองใหม่', false); } }
+  for (const k in S) delete S[k]; PH.length = 0; drawPh(); $('fb').value = ''; $('emp').value = ''; $('empC').style.display = 'none'; ['empN', 'empI', 'empR'].forEach(k => $(k).value = ''); paint();
+  b.disabled = false; b.textContent = 'บันทึกผลการตรวจ'; scrollTo({ top: 0, behavior: 'smooth' });
+}
+document.documentElement.dataset.t = localStorage.getItem('sbk_theme') || '';
+init();
+</script>
+</body>
+</html>
