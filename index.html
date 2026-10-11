@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>SBK Service Audit — ฟอร์มตรวจประเมิน v12</title>
+<title>SBK Service Audit — ฟอร์มตรวจประเมิน v13</title>
 <meta name="theme-color" content="#ea580c">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -195,7 +195,7 @@ padding:10px max(14px,env(safe-area-inset-right)) calc(10px + env(safe-area-inse
 <script>
 'use strict';
 /* ===== ตั้งค่า ===== */
-const VERSION = 'v12';
+const VERSION = 'v13';
 const API_URL = 'https://script.google.com/macros/s/AKfycbyhYoaB58BSjU57biQeieEFsCfHnGb5t285rdRWRC5Sl1a1hYa6wY9E1JZECe9tSOQC/exec';
 const FLOORS = ['ชั้น.B1', 'ชั้น.1', 'ชั้น.2', 'ชั้น.3', 'ชั้น.4', 'ชั้น.5'];
 const PASS_PCT = 70, MIN_DOMAIN = 3; // ผ่านเมื่อ ≥70% และไม่มีหัวข้อใดต่ำกว่า 3 (ตรงกับ Code.gs และแดชบอร์ด)
@@ -495,7 +495,7 @@ async function submitForm() {
     const notes = [];
     if (j.unverified) notes.push('ยืนยันผลจากเซิร์ฟเวอร์ไม่ได้ — โปรดตรวจในแดชบอร์ด');
     if (Array.isArray(j.warn) && j.warn.length) notes.push(j.warn.join(' · '));
-    if (!j.unverified && !j.version) notes.push('Backend ยังเป็นโค้ดเก่า — วาง Code_v12.gs แล้ว Deploy New version');
+    if (!j.unverified && !j.version) notes.push('Backend ยังเป็นโค้ดเก่า — วาง Code_v13.gs แล้ว Deploy New version');
     if (notes.length) setTimeout(() => toast('⚠️ ' + notes.join(' | '), false, 6000), 2000);
   } catch (e) {
     if (e.kind === 'fatal') toast('บันทึกไม่สำเร็จ: ' + e.message + ' (ข้อมูลยังอยู่บนฟอร์ม)', false, 6000); // ไม่ล้างฟอร์ม ให้แก้แล้วส่งใหม่
