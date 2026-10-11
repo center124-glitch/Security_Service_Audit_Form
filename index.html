@@ -137,6 +137,19 @@ padding:10px max(14px,env(safe-area-inset-right)) calc(10px + env(safe-area-inse
  .btn:after{display:none}
  #qb{animation:none}
 }
+/* ===== หน้าต่างภาพใบรายงาน ===== */
+.rv{position:fixed;inset:0;z-index:85;display:none;align-items:center;justify-content:center;background:rgba(28,25,23,.62);padding:max(14px,env(safe-area-inset-top)) max(14px,env(safe-area-inset-right)) max(14px,env(safe-area-inset-bottom)) max(14px,env(safe-area-inset-left))}
+.rv.on{display:flex}
+.rvc{background:var(--card);border-radius:24px;width:100%;max-width:520px;max-height:100%;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.4);animation:pp .35s cubic-bezier(.2,1.3,.4,1)}
+.rvh{padding:16px 18px 10px;text-align:center}.rvh b{font-size:1.1rem;display:block}.rvh small{color:var(--mu);font-size:.82rem}
+.rvb{flex:1;overflow:auto;-webkit-overflow-scrolling:touch;padding:4px 16px;background:var(--in);border-top:1px solid var(--bd);border-bottom:1px solid var(--bd)}
+.rvb img{display:block;width:100%;border-radius:14px;margin:10px 0;box-shadow:0 6px 20px rgba(0,0,0,.12)}
+.rvld{display:grid;place-items:center;gap:10px;padding:60px 0;color:var(--mu);font-size:.9rem}.rvld i{width:34px;height:34px;border:4px solid var(--bd);border-top-color:var(--pr);border-radius:50%;animation:spin 1s linear infinite}
+.rvf{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:14px 16px calc(14px + env(safe-area-inset-bottom))}
+.rvf button{min-height:52px;border-radius:15px;font-weight:600;font-size:.98rem;cursor:pointer}
+.rvf .sv{grid-column:1/-1;border:0;color:#fff;background:linear-gradient(120deg,#f97316,#ef4444);box-shadow:0 8px 20px rgba(239,68,68,.3)}.rvf .sv:disabled{opacity:.55;cursor:wait}
+.rvf .gh{border:1.5px solid var(--bd);background:var(--card);color:var(--tx)}
+.rvt{font-size:.74rem;color:var(--mu);text-align:center;padding:0 16px 4px}
 @media(prefers-reduced-motion:reduce){*,:before,:after{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -160,6 +173,7 @@ padding:10px max(14px,env(safe-area-inset-right)) calc(10px + env(safe-area-inse
   <div class="sp"></div>
   <span class="net" id="net" role="img" aria-label="สถานะเครือข่าย"></span>
   <button class="ib" id="qb" onclick="flushQueue(true)" title="ข้อมูลค้างส่ง — แตะเพื่อส่งตอนนี้" hidden>📤 <b id="qn">0</b></button>
+  <button class="ib" id="slipBtn" onclick="openSlip(LAST_SLIP)" title="ภาพใบรายงานล่าสุด" aria-label="ภาพใบรายงานล่าสุด" hidden>🧾</button>
   <button class="ib" onclick="theme()" aria-label="สลับโหมดสว่าง/มืด" title="สลับโหมด">🌓</button>
 </header>
 
@@ -190,6 +204,12 @@ padding:10px max(14px,env(safe-area-inset-right)) calc(10px + env(safe-area-inse
   <button class="btn" id="go" type="button" onclick="submitForm()">บันทึกผลการตรวจ</button>
 </div>
 <div class="okv" id="okv" onclick="this.classList.remove('on')"><div class="okc"><svg viewBox="0 0 52 52"><circle cx="26" cy="26" r="24" fill="none" stroke="#fff" stroke-width="3"/><path d="m14 27 8 8 16-17" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg><b id="okT" style="display:block;margin-top:8px"></b></div></div>
+<div class="rv" id="rv" role="dialog" aria-modal="true" aria-label="ภาพใบรายงานการตรวจ"><div class="rvc">
+  <div class="rvh"><b>🧾 ภาพใบรายงานการตรวจ</b><small id="rvSt"></small></div>
+  <div class="rvb"><div class="rvld" id="rvLd"><i></i>กำลังสร้างภาพใบรายงาน...</div><img id="rvImg" alt="ภาพใบรายงานการตรวจ" hidden></div>
+  <div class="rvf"><button class="sv" id="rvSave" onclick="saveSlip()">⬇ บันทึกภาพลงเครื่อง</button>
+    <button class="gh" onclick="closeSlip()">✓ ตรวจคนถัดไป</button><button class="gh" onclick="closeSlip()">ปิด</button></div>
+  <div class="rvt">บันทึกแล้วส่งต่อทาง LINE ได้ทันที · iPhone: ถ้ากดบันทึกไม่ได้ ให้กดค้างที่ภาพ → "บันทึกลงในรูปภาพ"</div></div></div>
 <div id="toast" role="status" aria-live="polite"></div>
 
 <script>
@@ -485,12 +505,17 @@ async function submitForm() {
   const p = { uid: newUid(), v: VERSION, cts: new Date().toISOString(), date: $('date').value, id, name, role, shift: $('shift').value,
     loc: $('loc').value.trim(), floor: $('floor').value, inspector, fb: $('fb').value.trim(), photos: PH.slice() };
   r.v.forEach((x, i) => p['s' + (i + 1)] = x);
+  // ข้อมูลสำหรับภาพใบรายงาน (เก็บก่อนล้างฟอร์ม)
+  const snap = { uid: p.uid, date: p.date, id: p.id, name: p.name, role: p.role, shift: p.shift, floor: p.floor, loc: p.loc, inspector: p.inspector, fb: p.fb, photos: p.photos,
+    s: r.v.slice(), pct: r.pct, pass: r.pass, sum: r.v.reduce((a, b) => a + b, 0), min: Math.min(...r.v), savedAt: Date.now(),
+    dateTh: new Date(p.date + 'T00:00:00').toLocaleDateString('th-TH', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' }),
+    savedTh: new Date().toLocaleString('th-TH', { day: 'numeric', month: 'short', year: '2-digit', hour: '2-digit', minute: '2-digit' }) + ' น.' };
   lsSet(FK, p.floor); lsSet(IK, JSON.stringify({ v: ii, n: ii === 'custom' ? p.inspector : '' }));
   busy = true; setBtn(true);
   let saved = false;
   try {
     if (navigator.onLine === false) throw err('ออฟไลน์อยู่', 'retry');
-    const j = await post(p); saved = true;
+    const j = await post(p); saved = true; snap.status = j.dup ? 'dup' : 'ok';
     celebrate((j.dup ? 'รายการนี้บันทึกไว้แล้ว — ' : j.unverified ? 'ส่งข้อมูลแล้ว — ' : 'บันทึกสำเร็จ — ') + p.name);
     const notes = [];
     if (j.unverified) notes.push('ยืนยันผลจากเซิร์ฟเวอร์ไม่ได้ — โปรดตรวจในแดชบอร์ด');
@@ -499,10 +524,10 @@ async function submitForm() {
     if (notes.length) setTimeout(() => toast('⚠️ ' + notes.join(' | '), false, 6000), 2000);
   } catch (e) {
     if (e.kind === 'fatal') toast('บันทึกไม่สำเร็จ: ' + e.message + ' (ข้อมูลยังอยู่บนฟอร์ม)', false, 6000); // ไม่ล้างฟอร์ม ให้แก้แล้วส่งใหม่
-    else if (enqueue(p)) { saved = true; toast(e.message + ' — เก็บไว้ในเครื่องแล้ว ระบบจะส่งให้อัตโนมัติ', false, 5000); }
+    else if (enqueue(p)) { saved = true; snap.status = 'queued'; toast(e.message + ' — เก็บไว้ในเครื่องแล้ว ระบบจะส่งให้อัตโนมัติ', false, 5000); }
     else toast('ส่งไม่สำเร็จและพื้นที่ในเครื่องเต็ม — ข้อมูลยังอยู่บนฟอร์ม ลองลบรูปบางส่วนแล้วกดบันทึกอีกครั้ง', false, 7000); // ไม่ล้างฟอร์ม = ข้อมูลไม่หาย
   } finally { busy = false; setBtn(false); }
-  if (saved) resetForm(false);
+  if (saved) { resetForm(false); setTimeout(() => { $('okv').classList.remove('on'); openSlip(snap); }, 1300); } // แสดงภาพใบรายงานหลังแอนิเมชันบันทึกสำเร็จ
 }
 // ล้างฟอร์มหลังบันทึก: เก็บ วันที่/กะ/ชั้น/จุดตรวจ/ผู้ตรวจ ไว้ (มักตรวจต่อเนื่องหลายคนในรอบเดียวกัน)
 function resetForm(all) {
@@ -514,6 +539,143 @@ function resetForm(all) {
   lsDel(DK); dirty = false; scrollTo({ top: 0, behavior: 'smooth' });
 }
 function clearAll() { if ((dirty || PH.length) && !confirm('ล้างข้อมูลที่กรอกทั้งหมดใช่หรือไม่?')) return; resetForm(true); toast('ล้างฟอร์มแล้ว', true); }
+
+/* ===== ภาพใบรายงานการตรวจรายบุคคล (สร้างหลังบันทึก → บันทึกลงเครื่อง แล้วส่งต่อได้ทันที) =====
+   วาดด้วย Canvas ของเบราว์เซอร์โดยตรง: ไม่ต้องโหลดไลบรารีเพิ่ม · ทำงานได้แม้ออฟไลน์ · ภาษาไทยจัดวางโดยเบราว์เซอร์จึงถูกต้อง */
+let LAST_SLIP = null, slipBlob = null, slipUrl = '';
+const DN_SHORT = ['บุคลิกภาพและการแต่งกาย', 'คำพูดและการใช้ภาษา', 'ท่าทางและภาษากาย', 'การยืนโพเดียมและการปรากฏตัว', 'การบริการและการช่วยเหลือลูกค้า', 'การสื่อสารและการประสานงาน'];
+const loadImg = src => new Promise(res => { const i = new Image(); i.onload = () => res(i); i.onerror = () => res(null); i.src = src; });
+// ตัดบรรทัดภาษาไทย: ใช้ Intl.Segmenter ตัดคำ (ถ้าเบราว์เซอร์รองรับ) ไม่งั้นตัดทีละตัวอักษร
+function wrapLines(x, text, maxW, maxLines) {
+  const segs = (() => { try { return [...new Intl.Segmenter('th', { granularity: 'word' }).segment(text)].map(s => s.segment); } catch (e) { return [...text]; } })();
+  const lines = []; let cur = '';
+  for (const sg of segs) {
+    if (sg === '\n') { lines.push(cur); cur = ''; continue; }
+    if (x.measureText(cur + sg).width <= maxW || !cur) cur += sg; else { lines.push(cur.trimEnd()); cur = sg.trimStart(); }
+  }
+  if (cur) lines.push(cur);
+  if (maxLines && lines.length > maxLines) { const l = lines.slice(0, maxLines); l[maxLines - 1] = l[maxLines - 1].replace(/.{0,2}$/, '…'); return l; }
+  return lines;
+}
+function rr(x, X, Y, w, h, r) { x.beginPath(); x.moveTo(X + r, Y); x.arcTo(X + w, Y, X + w, Y + h, r); x.arcTo(X + w, Y + h, X, Y + h, r); x.arcTo(X, Y + h, X, Y, r); x.arcTo(X, Y, X + w, Y, r); x.closePath(); }
+async function drawSlip(d, withLogo = true) {
+  const W = 1080, P = 44, IW = W - P * 2, SC = 2, F = "'Prompt', system-ui, sans-serif";
+  try { await Promise.all(['400', '500', '600', '700'].map(w => document.fonts.load(w + ' 28px Prompt'))); } catch (e) {}
+  const photos = (await Promise.all((d.photos || []).map(loadImg))).filter(Boolean);
+  const meas = document.createElement('canvas').getContext('2d'); meas.font = '400 27px ' + F;
+  const fbLines = d.fb ? wrapLines(meas, d.fb, IW - 56, 8) : [];
+  // ความสูงแต่ละส่วน → คำนวณขนาดภาพก่อนวาด
+  const phW = photos.length ? (IW - (photos.length - 1) * 18) / photos.length : 0, phH = photos.length ? Math.min(420, phW * (photos.length === 1 ? .62 : .78)) : 0;
+  const H = P + 200 + 26 + 250 + 26 + 4 * 92 + 26 + 70 + 6 * 78 + 20 + (fbLines.length ? 26 + 76 + fbLines.length * 40 + 24 : 0) + (photos.length ? 26 + 64 + phH : 0) + 30 + 96 + P;
+  const c = document.createElement('canvas'); c.width = W * SC; c.height = H * SC;
+  const x = c.getContext('2d'); x.scale(SC, SC); x.textBaseline = 'alphabetic';
+  x.fillStyle = '#fff7ed'; x.fillRect(0, 0, W, H);
+  let y = P;
+  // --- หัวใบรายงาน ---
+  let g = x.createLinearGradient(P, 0, W - P, 200); g.addColorStop(0, '#f97316'); g.addColorStop(.55, '#ef4444'); g.addColorStop(1, '#ec4899');
+  rr(x, P, y, IW, 200, 30); x.fillStyle = g; x.fill();
+  x.save(); rr(x, P, y, IW, 200, 30); x.clip(); x.fillStyle = 'rgba(255,255,255,.12)'; x.beginPath(); x.arc(W - P - 60, y + 10, 150, 0, 7); x.fill(); x.beginPath(); x.arc(W - P - 230, y + 230, 110, 0, 7); x.fill(); x.restore();
+  if (withLogo) { const lg = await loadImg('data:image/svg+xml;charset=utf-8,' + encodeURIComponent(LOGO)); if (lg) x.drawImage(lg, P + 30, y + 46, 108, 108); }
+  const tx = P + (withLogo ? 162 : 34);
+  x.fillStyle = '#fff'; x.font = '700 42px ' + F; x.fillText('ใบรายงานผลการตรวจประเมิน', tx, y + 86);
+  x.font = '500 25px ' + F; x.fillStyle = 'rgba(255,255,255,.92)'; x.fillText('สมรรถนะการบริการ บุคลิกภาพ และการสื่อสาร', tx, y + 126);
+  x.font = '400 22px ' + F; x.fillStyle = 'rgba(255,255,255,.85)'; x.fillText('SBK Service Audit · ศูนย์การค้าซีคอน บางแค', tx, y + 160);
+  y += 200 + 26;
+  // --- ผลการประเมิน (วงแหวน % + ตราผล) ---
+  const ok = d.pass, mc = ok ? '#059669' : '#dc2626';
+  rr(x, P, y, IW, 250, 26); x.fillStyle = '#fff'; x.fill(); x.lineWidth = 2; x.strokeStyle = ok ? '#a7f3d0' : '#fecaca'; x.stroke();
+  const cx = P + 140, cy = y + 125, R = 88;
+  x.lineCap = 'round'; x.lineWidth = 20; x.strokeStyle = '#f1f5f9'; x.beginPath(); x.arc(cx, cy, R, 0, Math.PI * 2); x.stroke();
+  x.strokeStyle = mc; x.beginPath(); x.arc(cx, cy, R, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * Math.min(1, d.pct / 100)); x.stroke();
+  x.textAlign = 'center'; x.fillStyle = mc; x.font = '700 ' + (String(d.pct).length > 3 ? 40 : 50) + 'px ' + F; x.fillText(d.pct + '%', cx, cy + 12); // ทศนิยม → ลดขนาดให้อยู่ในวงแหวน x.font = '500 20px ' + F; x.fillStyle = '#78716c'; x.fillText('คะแนนรวม', cx, cy + 44);
+  x.textAlign = 'left';
+  const rx = P + 280;
+  x.font = '500 24px ' + F; x.fillStyle = '#78716c'; x.fillText('ผลการประเมิน', rx, y + 64);
+  const lab = ok ? '✔ ผ่านเกณฑ์' : '✖ ต้องอบรมเพิ่ม'; x.font = '700 40px ' + F; const lw = x.measureText(lab).width + 56;
+  rr(x, rx, y + 82, lw, 70, 35); x.fillStyle = ok ? '#d1fae5' : '#fee2e2'; x.fill(); x.fillStyle = mc; x.fillText(lab, rx + 28, y + 131);
+  x.font = '400 22px ' + F; x.fillStyle = '#57534e';
+  x.fillText('คะแนนรวม ' + d.sum + ' / 30 · หัวข้อต่ำสุด ' + d.min + ' / 5', rx, y + 190);
+  x.fillStyle = '#a8a29e'; x.font = '400 20px ' + F; x.fillText('เกณฑ์ผ่าน: ≥ 70% และไม่มีหัวข้อใดต่ำกว่า 3', rx, y + 222);
+  y += 250 + 26;
+  // --- ข้อมูลการตรวจ (2 คอลัมน์) ---
+  const info = [['ชื่อ-สกุล', d.name], ['รหัสพนักงาน', d.id || '-'], ['ตำแหน่ง', d.role || '-'], ['วันที่ตรวจ', d.dateTh], ['กะปฏิบัติงาน', d.shift ? 'กะ' + d.shift : '-'], ['ชั้น / จุดที่ตรวจ', [d.floor, d.loc].filter(Boolean).join(' · ') || '-'], ['ผู้ตรวจประเมิน', d.inspector || '-'], ['บันทึกเมื่อ', d.savedTh]];
+  const cw = (IW - 18) / 2;
+  info.forEach((it, i) => {
+    const X = P + (i % 2) * (cw + 18), Y = y + Math.floor(i / 2) * 92;
+    rr(x, X, Y, cw, 78, 18); x.fillStyle = '#fff'; x.fill(); x.lineWidth = 1.5; x.strokeStyle = '#fed7aa'; x.stroke();
+    x.font = '400 19px ' + F; x.fillStyle = '#a8a29e'; x.fillText(it[0], X + 20, Y + 30);
+    x.font = '600 25px ' + F; x.fillStyle = '#1c1917'; x.fillText(wrapLines(x, String(it[1]), cw - 40, 1)[0] || '-', X + 20, Y + 62);
+  });
+  y += 4 * 92 + 26;
+  // --- คะแนน 6 หัวข้อ ---
+  x.font = '700 30px ' + F; x.fillStyle = '#9a3412'; x.fillText('คะแนนรายหัวข้อ (เต็ม 5)', P, y + 40); y += 70;
+  d.s.forEach((v, i) => {
+    const Y = y + i * 78;
+    rr(x, P, Y, IW, 66, 16); x.fillStyle = i % 2 ? '#fff' : '#fffbf7'; x.fill();
+    rr(x, P + 14, Y + 15, 36, 36, 10); x.fillStyle = DC[i]; x.fill();
+    x.fillStyle = '#fff'; x.font = '700 21px ' + F; x.textAlign = 'center'; x.fillText(String(i + 1), P + 32, Y + 41); x.textAlign = 'left';
+    x.fillStyle = '#292524'; x.font = '500 24px ' + F; x.fillText(DN_SHORT[i], P + 66, Y + 42);
+    const bx = W - P - 330; for (let k = 1; k <= 5; k++) { rr(x, bx + (k - 1) * 46, Y + 20, 38, 26, 8); x.fillStyle = k <= v ? COL[v] : '#e7e5e4'; x.fill(); }
+    x.font = '700 28px ' + F; x.fillStyle = COL[v]; x.textAlign = 'right'; x.fillText(v + '/5', W - P - 18, Y + 44); x.textAlign = 'left';
+  });
+  y += 6 * 78 + 20;
+  // --- ข้อเสนอแนะ ---
+  if (fbLines.length) {
+    y += 26; const bh = 76 + fbLines.length * 40;
+    rr(x, P, y, IW, bh, 22); x.fillStyle = '#fff'; x.fill(); x.lineWidth = 1.5; x.strokeStyle = '#fed7aa'; x.stroke();
+    x.fillStyle = '#f97316'; rr(x, P, y, 8, bh, 4); x.fill();
+    x.font = '700 26px ' + F; x.fillStyle = '#9a3412'; x.fillText('💬 ข้อเสนอแนะ', P + 28, y + 46);
+    x.font = '400 27px ' + F; x.fillStyle = '#292524'; fbLines.forEach((l, i) => x.fillText(l, P + 28, y + 92 + i * 40));
+    y += bh + 24;
+  }
+  // --- ภาพประกอบ ---
+  if (photos.length) {
+    y += 26; x.font = '700 30px ' + F; x.fillStyle = '#9a3412'; x.fillText('📷 ภาพประกอบการตรวจ (' + photos.length + ' ภาพ)', P, y + 40); y += 64;
+    photos.forEach((im, i) => {
+      const X = P + i * (phW + 18); x.save(); rr(x, X, y, phW, phH, 20); x.clip();
+      const k = Math.max(phW / im.width, phH / im.height), w = im.width * k, h = im.height * k; // crop ให้เต็มกรอบ
+      x.drawImage(im, X + (phW - w) / 2, y + (phH - h) / 2, w, h); x.restore();
+      rr(x, X, y, phW, phH, 20); x.lineWidth = 2; x.strokeStyle = '#fed7aa'; x.stroke();
+    });
+    y += phH;
+  }
+  // --- ท้ายใบ ---
+  y += 30; x.strokeStyle = '#fed7aa'; x.lineWidth = 2; x.setLineDash([8, 8]); x.beginPath(); x.moveTo(P, y); x.lineTo(W - P, y); x.stroke(); x.setLineDash([]);
+  x.font = '400 20px ' + F; x.fillStyle = '#a8a29e';
+  x.fillText('รหัสอ้างอิง ' + String(d.uid).slice(0, 13).toUpperCase() + (d.status === 'queued' ? ' · ⏳ รอส่งเข้าระบบ (ออฟไลน์)' : ' · ✔ บันทึกเข้าระบบแล้ว'), P, y + 42);
+  x.textAlign = 'right'; x.fillText('SBK Service Audit ' + VERSION, W - P, y + 42); x.textAlign = 'left';
+  return c;
+}
+async function makeSlip(d) {
+  let c = await drawSlip(d, true);
+  const toBlob = cv => new Promise((res, rej) => { try { cv.toBlob(b => b ? res(b) : rej(new Error('สร้างภาพไม่สำเร็จ')), 'image/jpeg', .9); } catch (e) { rej(e); } });
+  try { return await toBlob(c); }
+  catch (e) { c = await drawSlip(d, false); return toBlob(c); } // บางเบราว์เซอร์ห้ามส่งออกภาพที่มี SVG → วาดใหม่โดยไม่มีโลโก้
+}
+async function openSlip(d) {
+  if (!d) return;
+  LAST_SLIP = d; $('slipBtn').hidden = false;
+  $('rv').classList.add('on'); document.body.style.overflow = 'hidden';
+  $('rvSt').textContent = d.status === 'queued' ? '⏳ เก็บไว้ในเครื่องแล้ว — จะส่งเข้าระบบอัตโนมัติเมื่อออนไลน์' : d.status === 'dup' ? '✔ รายการนี้บันทึกไว้แล้ว' : '✔ บันทึกเข้าระบบแล้ว';
+  $('rvImg').hidden = true; $('rvLd').hidden = false; $('rvSave').disabled = true;
+  try {
+    slipBlob = await makeSlip(d);
+    if (slipUrl) URL.revokeObjectURL(slipUrl);
+    slipUrl = URL.createObjectURL(slipBlob); $('rvImg').src = slipUrl; $('rvImg').hidden = false; $('rvSave').disabled = false;
+  } catch (e) { console.error(e); toast('สร้างภาพใบรายงานไม่สำเร็จ: ' + e.message, false, 6000); }
+  finally { $('rvLd').hidden = true; }
+}
+function saveSlip() {
+  if (!slipBlob || !LAST_SLIP) return;
+  const d = LAST_SLIP, dt = d.date.split('-'), tm = new Date(d.savedAt);
+  const name = ('ใบรายงานตรวจ_' + d.name + '_' + dt[2] + '-' + dt[1] + '-' + (+dt[0] + 543) + '_' + String(tm.getHours()).padStart(2, '0') + String(tm.getMinutes()).padStart(2, '0'))
+    .replace(/[\\/:*?"<>|]+/g, '-').replace(/\s+/g, '_') + '.jpg';
+  try {
+    const a = document.createElement('a'); a.href = slipUrl; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+    toast('บันทึกภาพ ' + name + ' ลงเครื่องแล้ว', true, 4500);
+  } catch (e) { toast('บันทึกไม่สำเร็จ — กดค้างที่ภาพแล้วเลือก "บันทึกรูปภาพ"', false, 6000); }
+}
+function closeSlip() { $('rv').classList.remove('on'); document.body.style.overflow = ''; }
 
 /* ===== เริ่มทำงาน ===== */
 (function () { const t = lsGet(TK); document.documentElement.dataset.t = t === 'dark' || (t !== 'light' && t !== '' && matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light'; })();
